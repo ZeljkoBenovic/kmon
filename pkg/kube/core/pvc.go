@@ -93,6 +93,11 @@ func (p *pvc) Delete(namespace, name string) error {
 func (p *pvc) CreateVolumeSnapshotFromPVC(namespace string, name string, snapshotClassName string, sourcePVCName string) (*v3.VolumeSnapshot, error) {
 	p.log.Info("creating pvc", "namespace", namespace, "name", name)
 
+	var snapClassName *string
+	if snapshotClassName != "" {
+		snapClassName = &snapshotClassName
+	}
+
 	vs, err := p.snap.VolumeSnapshots(namespace).Create(p.ctx, &v3.VolumeSnapshot{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("%s-", name),
@@ -102,7 +107,7 @@ func (p *pvc) CreateVolumeSnapshotFromPVC(namespace string, name string, snapsho
 			Source: v3.VolumeSnapshotSource{
 				PersistentVolumeClaimName: &sourcePVCName,
 			},
-			VolumeSnapshotClassName: &snapshotClassName,
+			VolumeSnapshotClassName: snapClassName,
 		},
 		Status: nil,
 	}, metav1.CreateOptions{})

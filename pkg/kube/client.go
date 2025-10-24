@@ -41,8 +41,14 @@ func NewKubeClient(kubeContext string) (*Client, error) {
 		kubeConf, err = clientcmd.NewDefaultClientConfig(*kconf, &clientcmd.ConfigOverrides{
 			CurrentContext: kubeContext,
 		}).ClientConfig()
+		if err != nil {
+			return nil, fmt.Errorf("could not create new kubeConf: %w", err)
+		}
 
 		kubeConf, err = clientcmd.BuildConfigFromFlags("", filepath.Join(homedir.HomeDir(), ".kube", "config"))
+		if err != nil {
+			return nil, fmt.Errorf("could not build kubeConf from flags: %w", err)
+		}
 	}
 	if err != nil {
 		return nil, fmt.Errorf("could not build kube config: %w", err)
