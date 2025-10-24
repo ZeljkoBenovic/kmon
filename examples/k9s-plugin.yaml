@@ -1,0 +1,35 @@
+# VolumeSnapshot CR https://github.com/kubernetes-csi/external-snapshotter/blob/master/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
+# It also requires VolumeSnapshotClass https://github.com/kubernetes-csi/external-snapshotter/blob/master/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
+# And VolumeSnapshotContent https://github.com/kubernetes-csi/external-snapshotter/blob/master/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
+# The external-snapshot controller unofficial Helm Chart https://github.com/piraeusdatastore/helm-charts/tree/main/charts/snapshot-controller
+plugins:
+  pod-from-pvc:
+    shortCut: Shift-P
+    description: Start pod from PVC
+    scopes:
+      - pvc
+    command: cmd
+    background: false
+    args:
+      - /C
+      - "kmon pod --mode run-from-pvc -n $NAMESPACE --context $CONTEXT --pvc-name $NAME"
+  pod-from-snapshot:
+    shortCut: Shift-P
+    description: Start pod from PVC using VolumeSnapshot
+    scopes:
+      - volumesnapshot
+    command: cmd
+    background: false
+    args:
+      - /C
+      - "kmon pod --mode run-from-snapshot --context $CONTEXT -n $NAMESPACE --snapshot-name $NAME"
+  snapshot-from-pvc:
+    shortCut: Shift-F
+    description: Create snapshot from PVC
+    scopes:
+      - pvc
+    command: cmd
+    background: false
+    args:
+      - /C
+      - "kmon pvc --mode snapshot-from-pvc -n $NAMESPACE --context $CONTEXT --snapshot-class-name vmdk-snapshot-class --source-pvc-name $NAME"

@@ -1,0 +1,8 @@
+# kmon config example
+namespace: default
+pod:
+  name: kmon-testing
+  mount_path: kmon-testing-path
+  volume_name: kmon-testing-vol
+pvc:
+  name: kmon-testing-pvc
