@@ -20,13 +20,8 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
 
-      - name: Install GoReleaser
+      - name: Install GoReleaser and release
         uses: goreleaser/goreleaser-action@v6
-        with:
-          install-only: true
-
-      - name: Release
-        run: goreleaser release
         with:
           version: '~> v2'
           args: release --clean
