@@ -36,6 +36,7 @@ var (
 
 var (
 	SnapshotFromPVC PVCOperationMode = "snapshot-from-pvc"
+	PVCfromSnapshot PVCOperationMode = "pvc-from-snapshot"
 )
 
 func (p *PodOperationMode) stringPtr() *string {

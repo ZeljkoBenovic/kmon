@@ -60,6 +60,8 @@ func (a *App) PVCCmdHandler() error {
 	switch a.conf.PVC.Mode {
 	case config.SnapshotFromPVC:
 		return a.createSnapshotFromPVC()
+	case config.PVCfromSnapshot:
+		return a.createPVCfromSnapshot()
 	default:
 		return fmt.Errorf("invalid pod mode: %s", a.conf.PVC.Mode)
 	}
@@ -192,6 +194,21 @@ func (a *App) createSnapshotFromPVC() error {
 	}
 
 	a.log.Info("pvc snapshot", "name", pvc.Name, "time", pvc.CreationTimestamp.String())
+
+	return nil
+}
+
+func (a *App) createPVCfromSnapshot() error {
+	pvc, err := a.core.PVC().Create(
+		a.conf.Namespace,
+		a.conf.PVC.Name,
+		core.WithRestoreFromVolumeSnapshot(a.conf.Pod.SnapshotName),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create pvc: %s", err)
+	}
+
+	a.log.Info("pvc created", "name", pvc.Name, "time", pvc.CreationTimestamp.String())
 
 	return nil
 }

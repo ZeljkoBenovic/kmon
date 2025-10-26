@@ -33,3 +33,13 @@ plugins:
     args:
       - /C
       - "kmon pvc --mode snapshot-from-pvc -n $NAMESPACE --context $CONTEXT --snapshot-class-name vmdk-snapshot-class --source-pvc-name $NAME"
+  pvc-from-snapshot:
+    shortCut: Shift-F
+    description: Create snapshot from PVC
+    scopes:
+      - volumesnapshot
+    command: cmd
+    background: false
+    args:
+      - /C
+      - "kmon pvc --mode pvc-from-snapshot -n $NAMESPACE --context $CONTEXT --snapshot-class-name vmdk-snapshot-class --snapshot-name $NAME"
