@@ -2,22 +2,16 @@ package core
 
 import (
 	"context"
+	"github.com/zeljkobenovic/kmon/pkg/kube"
 	"log/slog"
-
-	v2 "github.com/kubernetes-csi/external-snapshotter/client/v8/clientset/versioned/typed/volumesnapshot/v1"
-	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
-type KubeCore interface {
-	v1.CoreV1Interface
-	v2.VolumeSnapshotsGetter
-}
 type Core struct {
 	pod *pod
 	pvc *pvc
 }
 
-func NewCore(log *slog.Logger, ctx context.Context, cl KubeCore) *Core {
+func NewCore(log *slog.Logger, ctx context.Context, cl *kube.Client) *Core {
 	var c Core
 
 	c.pod = &pod{
@@ -27,10 +21,11 @@ func NewCore(log *slog.Logger, ctx context.Context, cl KubeCore) *Core {
 	}
 
 	c.pvc = &pvc{
-		ctx:  ctx,
-		log:  log.WithGroup("pvc"),
-		core: cl,
-		snap: cl,
+		ctx:       ctx,
+		log:       log.WithGroup("pvc"),
+		core:      cl,
+		snap:      cl,
+		snapClass: cl,
 	}
 
 	return &c
@@ -41,5 +36,9 @@ func (c *Core) Pod() PodManager {
 }
 
 func (c *Core) PVC() PVCManager {
+	return c.pvc
+}
+
+func (c *Core) Storage() StorageManager {
 	return c.pvc
 }

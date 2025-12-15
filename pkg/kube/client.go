@@ -12,12 +12,12 @@ import (
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 )
 
 type Client struct {
 	v1.CoreV1Interface
 	v2.VolumeSnapshotsGetter
+	v2.VolumeSnapshotClassesGetter
 }
 
 func NewKubeClient(kubeContext string) (*Client, error) {
@@ -44,11 +44,6 @@ func NewKubeClient(kubeContext string) (*Client, error) {
 		if err != nil {
 			return nil, fmt.Errorf("could not create new kubeConf: %w", err)
 		}
-
-		kubeConf, err = clientcmd.BuildConfigFromFlags("", filepath.Join(homedir.HomeDir(), ".kube", "config"))
-		if err != nil {
-			return nil, fmt.Errorf("could not build kubeConf from flags: %w", err)
-		}
 	}
 	if err != nil {
 		return nil, fmt.Errorf("could not build kube config: %w", err)
@@ -65,7 +60,8 @@ func NewKubeClient(kubeContext string) (*Client, error) {
 	}
 
 	return &Client{
-		CoreV1Interface:       kcl.CoreV1(),
-		VolumeSnapshotsGetter: vcl.SnapshotV1(),
+		CoreV1Interface:             kcl.CoreV1(),
+		VolumeSnapshotsGetter:       vcl.SnapshotV1(),
+		VolumeSnapshotClassesGetter: vcl.SnapshotV1(),
 	}, nil
 }

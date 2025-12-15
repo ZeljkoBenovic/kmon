@@ -24,11 +24,16 @@ type PVCManager interface {
 	CreateVolumeSnapshotFromPVC(namespace string, name string, snapshotClassName string, sourcePVCName string) (*v3.VolumeSnapshot, error)
 }
 
+type StorageManager interface {
+	GetFirstVolumeSnapshotClassName() (string, error)
+}
+
 type pvc struct {
-	ctx  context.Context
-	log  *slog.Logger
-	core v1.CoreV1Interface
-	snap v2.VolumeSnapshotsGetter
+	ctx       context.Context
+	log       *slog.Logger
+	core      v1.CoreV1Interface
+	snap      v2.VolumeSnapshotsGetter
+	snapClass v2.VolumeSnapshotClassesGetter
 }
 type PVCOptions func(*corev1.PersistentVolumeClaim)
 
@@ -47,6 +52,19 @@ func WithRestoreFromVolumeSnapshot(snapshotName string) PVCOptions {
 			Name:     snapshotName,
 		}
 	}
+}
+
+func (p *pvc) GetFirstVolumeSnapshotClassName() (string, error) {
+	list, err := p.snapClass.VolumeSnapshotClasses().List(p.ctx, metav1.ListOptions{})
+	if err != nil {
+		return "", fmt.Errorf("could not get volume snapshot class list: %w", err)
+	}
+
+	if len(list.Items) == 0 {
+		return "", fmt.Errorf("volume snapshot class list is empty")
+	}
+
+	return list.Items[0].Name, nil
 }
 
 func (p *pvc) Get(namespace, name string) (*corev1.PersistentVolumeClaim, error) {
@@ -93,9 +111,15 @@ func (p *pvc) Delete(namespace, name string) error {
 func (p *pvc) CreateVolumeSnapshotFromPVC(namespace string, name string, snapshotClassName string, sourcePVCName string) (*v3.VolumeSnapshot, error) {
 	p.log.Info("creating pvc", "namespace", namespace, "name", name)
 
-	var snapClassName *string
-	if snapshotClassName != "" {
-		snapClassName = &snapshotClassName
+	if snapshotClassName == "" {
+		p.log.Info("volume snapshot class not provided, using first available one")
+
+		firstVolSnapClass, err := p.GetFirstVolumeSnapshotClassName()
+		if err != nil {
+			return nil, err
+		}
+
+		snapshotClassName = firstVolSnapClass
 	}
 
 	vs, err := p.snap.VolumeSnapshots(namespace).Create(p.ctx, &v3.VolumeSnapshot{
@@ -107,7 +131,7 @@ func (p *pvc) CreateVolumeSnapshotFromPVC(namespace string, name string, snapsho
 			Source: v3.VolumeSnapshotSource{
 				PersistentVolumeClaimName: &sourcePVCName,
 			},
-			VolumeSnapshotClassName: snapClassName,
+			VolumeSnapshotClassName: &snapshotClassName,
 		},
 		Status: nil,
 	}, metav1.CreateOptions{})

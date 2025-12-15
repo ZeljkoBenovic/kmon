@@ -27,13 +27,7 @@ func NewApp() (*App, error) {
 		return nil, err
 	}
 
-	kcl, err := kube.NewKubeClient(c.Namespace)
-	if err != nil {
-		return nil, err
-	}
-
 	return &App{
-		core: core.NewCore(log, ctx, kcl),
 		conf: c,
 		log:  log.WithGroup("app"),
 		ctx:  ctx,
@@ -41,8 +35,18 @@ func NewApp() (*App, error) {
 }
 
 func (a *App) Run() error {
-	return a.conf.Execute(a)
+	a.conf.InitFuncHandler(func() {
+		// must be initialised in a prerun func as conf.Context doesn't get populated until root.Execute is called
+		kcl, err := kube.NewKubeClient(a.conf.Context)
+		if err != nil {
+			a.log.Error("Failed to create kube client: %v", err)
+			os.Exit(1)
+		}
 
+		a.core = core.NewCore(a.log, a.ctx, kcl)
+	})
+
+	return a.conf.Execute(a)
 }
 
 func (a *App) PodCmdHandler() error {

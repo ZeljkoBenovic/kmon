@@ -78,24 +78,6 @@ Some examples:
 * create a snapshot of a specified PVC
 and the list goes on...
 `,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			if c.rootCmd.PersistentFlags().Changed("config") {
-				if err := viper.BindPFlag("config", c.rootCmd.PersistentFlags().Lookup("config")); err != nil {
-					return err
-				}
-
-				viper.SetConfigFile(viper.GetString("config"))
-				if err := viper.ReadInConfig(); err != nil {
-					return err
-				}
-
-				c.log.Info("using config file", "file", viper.ConfigFileUsed())
-
-				return viper.Unmarshal(&c)
-			}
-
-			return nil
-		},
 	}
 
 	c.podCmd = &cobra.Command{
@@ -113,10 +95,43 @@ and the list goes on...
 	c.rootCmd.AddCommand(c.podCmd)
 	c.rootCmd.AddCommand(c.pvcCmd)
 
+	c.parseFlags()
+
 	return &c, nil
 }
 
 func (c *Config) Execute(handlers Runner) error {
+	c.rootCmd.RunE = func(_ *cobra.Command, _ []string) error { return c.rootCmd.Help() }
+	c.podCmd.RunE = func(_ *cobra.Command, _ []string) error { return handlers.PodCmdHandler() }
+	c.pvcCmd.RunE = func(_ *cobra.Command, _ []string) error { return handlers.PVCCmdHandler() }
+
+	return c.rootCmd.Execute()
+}
+
+func (c *Config) InitFuncHandler(initFn func()) {
+	c.rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		initFn()
+
+		if c.rootCmd.PersistentFlags().Changed("config") {
+			if err := viper.BindPFlag("config", c.rootCmd.PersistentFlags().Lookup("config")); err != nil {
+				return err
+			}
+
+			viper.SetConfigFile(viper.GetString("config"))
+			if err := viper.ReadInConfig(); err != nil {
+				return err
+			}
+
+			c.log.Info("using config file", "file", viper.ConfigFileUsed())
+
+			return viper.Unmarshal(&c)
+		}
+
+		return nil
+	}
+}
+
+func (c *Config) parseFlags() {
 	c.rootCmd.PersistentFlags().StringVarP(&c.configPath, "config", "c", "", "path to config file")
 	c.rootCmd.PersistentFlags().StringVarP(&c.Namespace, "namespace", "n", "default", "namespace to run in")
 	c.rootCmd.PersistentFlags().StringVar(&c.Context, "context", "", "context to run in")
@@ -146,10 +161,4 @@ func (c *Config) Execute(handlers Runner) error {
 	_ = viper.BindPFlag("pvc.snapshot-class-name", pvf.Lookup("source-class-name"))
 	_ = viper.BindPFlag("pvc.source-pvc-name", pvf.Lookup("source-pvc-name"))
 	_ = viper.BindPFlag("pvc.snapshot-name", pvf.Lookup("snapshot-name"))
-
-	c.rootCmd.RunE = func(_ *cobra.Command, _ []string) error { return c.rootCmd.Help() }
-	c.podCmd.RunE = func(_ *cobra.Command, _ []string) error { return handlers.PodCmdHandler() }
-	c.pvcCmd.RunE = func(_ *cobra.Command, _ []string) error { return handlers.PVCCmdHandler() }
-
-	return c.rootCmd.Execute()
 }
